@@ -8,8 +8,14 @@ jobs:
   deploy:
     strategy:
       matrix:
-        os: ['ubuntu-latest', 'ubuntu-20.04', 'window-latest']
+        os: ['ubuntu-latest', 'ubuntu-22.04', 'windows-latest']
         images: ['hello-world', 'alpine']
+        exclude:
+          - images: ['alpine']
+            os: [windows-latest]
+        include:
+          - image: ['amd64/alpine']
+            os: [ubuntu-latest]
     runs-on: ubuntu-${{ matrix.os }}
     steps:
       - name: Echo Docker Details
