@@ -19,7 +19,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dragon-text-file
-          path: dragon.txt
+          path: ./dragon.txt
 
   test_job_2:
     needs: build_job_1
@@ -29,7 +29,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: dragon-text-file
-          path: dragon.txt
+          path: ./dragon.txt
 
       - name: Test File Exist
         run: |
