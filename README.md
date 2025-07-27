@@ -12,5 +12,9 @@ https://code.visualstudio.com/docs/editor/versioncontrol#_git-support
 
 # Disable workflow manually
 
+# Create multi job workflow and share artifacts between jobs
 
+# Create a workflow to have variable and secret
+
+#
 
