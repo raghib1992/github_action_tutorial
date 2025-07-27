@@ -7,15 +7,17 @@ on:
 jobs:
   deploy:
     strategy:
+      max-parallel: 2
+      fail-fast: false
       matrix:
         os: ['ubuntu-latest', 'ubuntu-22.04', 'windows-latest']
         images: ['hello-world', 'alpine']
         exclude:
-          - images: ['alpine']
-            os: [windows-latest]
+          - images: alpine
+            os: windows-latest
         include:
-          - image: ['amd64/alpine']
-            os: [ubuntu-latest]
+          - image: amd64/alpine
+            os: ubuntu-latest
     runs-on: ubuntu-${{ matrix.os }}
     steps:
       - name: Echo Docker Details
