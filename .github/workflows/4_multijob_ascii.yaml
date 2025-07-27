@@ -32,7 +32,9 @@ jobs:
           path: dragon.txt
 
       - name: Test File Exist
-        run: grep -i "dragon" dragon.txt
+        run: |
+            ls -ltr
+            grep -i "dragon" dragon.txt
   deploy_job_3:
     needs: [test_job_2]
     runs-on: ubuntu-latest
