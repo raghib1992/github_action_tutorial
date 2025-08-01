@@ -34,7 +34,7 @@ jobs:
         run: |
           if [[ "${{ github.event_name }}" == "push" ]]; then
             echo docker run $CONTAINER_REGISTRY/${{ vars.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-            sleep 6000s
+            sleep 600s
           else
-            echo "Not running on push event
+            echo "Not running on push event"
           fi
