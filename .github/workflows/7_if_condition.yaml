@@ -2,9 +2,9 @@ name: If Condition Example
 on:
   push:
   # Trigger when PR raised to master branch
-  pull_request:
-    branches:
-      - master
+#   pull_request:
+#     branches:
+#       - master
 
 env: 
   CONTAINER_REGISTRY: docker.io
