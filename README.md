@@ -23,3 +23,7 @@ https://code.visualstudio.com/docs/editor/versioncontrol#_git-support
 # Matric
 
 # WOkflow Filter
+
+
+# Skip ci 
+##### Type [skip ci] in commit message to skip the workflow
