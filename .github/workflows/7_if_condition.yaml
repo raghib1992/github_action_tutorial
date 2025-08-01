@@ -1,8 +1,6 @@
 name: If Condition Example
 on:
   push:
-    branches:
-      - main
 
 env: 
   CONTAINER_REGISTRY: docker.io
