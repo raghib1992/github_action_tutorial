@@ -5,14 +5,14 @@ on:
       - master
       - develop
       - '!feature/*'
-    branches-ignore:
-      - 'v*' # Ignore version branches
-      - 'feature/*' # Ignore feature branches
-      - 'release/**' # Ignore release branches
+    # branches-ignore:
+    #   - 'v*' # Ignore version branches
+    #   - 'feature/*' # Ignore feature branches
+    #   - 'release/**' # Ignore release branches
   # schedule:
   #   - cron: '0/59 * * * *' # Every day at midnight
   pull_request:
-    types: [opened, reopened]
+    types: [opened, reopened, closed, synchronize]
     paths-ignore:
       - 'README.md' # Ignore changes to README.md
     branches:
