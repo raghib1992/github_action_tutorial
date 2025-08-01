@@ -17,7 +17,7 @@ jobs:
         run: echo "${{ secrets.DOCKER_SECRET }}" | docker login -u "${{ vars.DOCKER_USERNAME }}" --password-stdin
       
       - name: Docker Publish
-        run: echo docker push ${ env.CONTAINER_REGISTRY }/${{ vars.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+        run: echo docker push ${{ env.CONTAINER_REGISTRY }}/${{ vars.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
   deploy:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
