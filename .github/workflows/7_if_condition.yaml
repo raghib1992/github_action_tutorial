@@ -14,7 +14,7 @@ jobs:
         run: docker info
 
       - name: Docker Login
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ vars.DOCKER_USERNAME }}" --password-stdin
+        run: echo "${{ secrets.DOCKER_SECRET }}" | docker login -u "${{ vars.DOCKER_USERNAME }}" --password-stdin
       
       - name: Docker Publish
         run: echo docker push ${ env.CONTAINER_REGISTRY }/${{ vars.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
