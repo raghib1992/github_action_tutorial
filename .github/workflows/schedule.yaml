@@ -1,0 +1,28 @@
+name: Schedule workflow
+
+on:
+  push:
+    branches-ignore:
+      - "master"
+  # send api pull_request_review
+  # url: https://api.github.com/repos/<username>/<reponame>/dispatches
+  # Body:
+  # {
+  #   "event_type": "build"
+  # }
+  # repository_dispatch:
+  #   types: [build]
+  # schedule:
+  #   - cron: "* * * * *"
+  # push:
+  # pull_request:
+  #   types: [closed, assigned, opened, reopened]
+
+
+jobs:
+  shedule-job:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: test
+      run: echo "Hello World"

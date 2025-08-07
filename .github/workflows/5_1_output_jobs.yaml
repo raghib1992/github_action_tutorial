@@ -1,0 +1,17 @@
+name: simple output jobs 
+on: workflow_dispatch
+jobs:
+  first_job:
+    runs-on: ubuntu-lates
+    outputs:
+      name: ${{ steps.unique_step_id.outputs.say }}
+    steps:
+      - name: save name
+        id: unique_step_id
+        run: echo 'say={Raghib Nadim}' >> $GITHUB_OUTPUT
+  second_job:
+    needs: first_job
+    runs-on: ubuntu-latest
+    steps:
+      - name: output name
+        run: echo "${{ needs.first_job.outputs.name }}"    

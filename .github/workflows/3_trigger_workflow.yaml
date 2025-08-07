@@ -1,0 +1,84 @@
+name: Trigger Workflow with Events Filter
+
+on: # https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows
+  workflow_dispatch:
+  push:
+    branches:
+      - 'feature/*' # match feature/featA doesn't match feature/feat/A
+      - 'feature/**' # match feature/feat/B
+      - '!bugs/buga'
+    # branches-ignore:
+    #   - master
+    tags:
+      - v1.*
+    paths:
+      - '**.js'
+  pull_request:
+    types: [closed , reopened, opened, assigned ]
+
+jobs:
+  Sonar-Analysis:
+    name: first job
+    runs-on: ubuntu-latest
+    steps:
+    - name: Files List
+      run: |
+          pwd
+          ls -la
+          echo $GITHUB_SHA
+          echo $GITHUB_REPOSITORY
+          echo $GITHUB_WORKSPACE
+    - name: checkout git repo
+      uses: actions/checkout@v2.5.0
+
+    - name: Files List after checkout
+      run: |
+          pwd
+          ls -la
+  #   - name: step two
+  #     run: env | sort  
+  # job2:
+  #   name: second job
+  #   runs-on: windows-latest
+  #   steps:
+  #   - name: step one
+  #     uses: actions/checkput@v2
+  #   - name: step two
+  #     run: "Get-ChildItem Env: | Sort-Object Name"
+  # run-github-action:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Default Env Variable
+  #       run: |
+  #           echo $GITHUB_SHA
+  #           echo $GITHUB_REPOSITORY
+  #           echo $GITHUB_WORKSPACE
+  #           echo "${{ github.token }}"
+            
+  #     - name: List Files
+  #       run: |
+  #           pwd
+  #           ls -la
+  #     - name: Checkout the repo
+  #       uses: actions/checkout@v1
+      
+  #     - name: List Files
+  #       run: |
+  #           pwd
+  #           ls -la
+  #     - name: Checkout Simple JS Action
+  #       id: greet
+  #       uses: actions/hello-world-javascript-action@v1
+  #       with:
+  #         who-to-greet: Raghib
+  #     - name: Log greeting time
+  #       run: echo "${{ steps.greet.outputs.time }}"
+  # run-window-command:
+  #   runs-on: windows-latest
+  #   needs: ["run-shell-command"] # depends on the mention job
+  #   steps:
+  #     - name: Directory powershell
+  #       run: Get-Location
+  #     - name: Directory Bash
+  #       run: pwd
+  #       shell: bash

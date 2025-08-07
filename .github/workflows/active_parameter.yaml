@@ -1,0 +1,21 @@
+name: Active Paramter
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      clusterName:
+        type: choice
+        reqiored: true
+        options:
+        - bronze
+        - dev
+        - iron
+        - jade
+        - mirror
+        - onyx
+jobs:
+  print:
+    runs-on: ubuntu-latest
+    steps:
+      - name: print parameter
+        run: echo "${{ inputs.clusterName }}"

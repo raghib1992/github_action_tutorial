@@ -1,0 +1,46 @@
+name: Container
+on: workflow_dispatch
+
+jobs:
+  docker-step:
+    runs-on: ubuntu-latest
+    container:
+      image: node:14
+    steps:
+      # - name: node executable
+      #   run: type -a node
+      - name: Step with docker 
+        uses: docker://node:16
+        with:
+          entrypoint: /bin/echo
+          args: "Hello World"
+      - name: Log Node version 
+        uses: docker://node:16
+        with:
+          entrypoint: /usr/local/bin/node
+          args: -v
+
+      - uses: actions/checkout@v1
+      - name: Make a script executable
+        run: chmod +x script.sh
+      - name: Run A script 
+        uses: docker://node:16
+        with:
+          entrypoint: ./script.sh
+          args: "Some Script"
+  node-docker:
+    services:
+      app:
+        image: alialaa17/node-api
+        ports:
+          - 3001:3000
+      mongo:
+        image: mongo
+        ports:
+          - "27017:27017"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post A User 
+        run: 'curl -X POST http://localhost:3001/api/user -H ''Content-Type: application/json'' -d ''{"username": "hello", "address": "dwded"}'''
+      - name: Get User
+        run: curl http://localhost:3001/api/user

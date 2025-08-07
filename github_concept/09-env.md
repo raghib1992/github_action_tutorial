@@ -1,0 +1,38 @@
+1. Create Mongodb free
+2. Create Inputs in github
+3. Workflow 
+```yml
+name: Using Env In Workflow
+on:
+  push:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+env:
+  MONGODB_DB_NAME: gh-demo
+jobs:
+  test:
+    environment: testing
+    runs-on: ubuntu-latest
+    env:
+      MONGODB_CLUSTER_ADDRESS: mongodb_url
+      MONGODB_USERNAME: ${{ inputs.MONGODB_USERNAME }}
+      MONGODB_PASSWORD: ${{ inputs.MONGODB_PASSWORD }}
+    steps:
+      - name: Get Code
+        uses: actions/checkout@v3
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: npm-deps-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Run server
+        run: npm start & npx wait-on http://127.0.0.1:XYZ
+      - name: Run tests
+        run: npm test
+      - name: Output information
+        run: echo "..."
+```

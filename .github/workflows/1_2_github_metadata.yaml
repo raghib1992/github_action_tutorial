@@ -1,0 +1,12 @@
+name: Github Metadata
+
+on: workflow_dispatch
+
+jobs:
+  first-job:
+    runs-on: ubuntu-20.04
+    steps:
+      # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs
+      - name: Output Github Context
+        # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/evaluate-expressions-in-workflows-and-actions
+        run: echo ${{ toJSON(github) }}

@@ -1,0 +1,35 @@
+name: Matrix
+on: push
+
+jobs:
+  node-version:
+    if: ${{ github.event_name == 'pull_request'}}
+    strategy:
+      fail-fast: true
+      matrix:
+        op: [macos-latest, ubuntu-latest, windows-latest]
+        node_version: [6, 10, 8]
+        include:
+          - op: ubuntu-latest
+            node_version: 8
+            is_uuntu_8: "true"
+        exclude:
+          - op: macos-latest
+            node_version: 10
+          - op: windows-latest
+            node_version: 8
+    runs-on: ${{ matrix.op }}
+    env:
+      IS_UBUNTU_8: ${{ matrix.is_uuntu_8 }}
+    steps:
+      - name: Logs node-version Before
+        run: node -v
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node_version }}
+          # cache: 'npm'
+          # cache-dependency-path: subdir/package-lock.json
+      - name: Logs node-version After
+        run: |
+            node -v
+            echo $IS_UBUNTU_8

@@ -1,0 +1,217 @@
+name: Terragrunt Plan/Apply - Azimuth Runners
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  ## Sets environment variable for internet access
+  http_proxy: http://194.34.78.250:9480
+  https_proxy: http://194.34.78.250:9480
+  no_proxy: 10.0.0.0/8,172.29.0.0/8,astrazeneca.net
+  tf_version: '1.6.3'
+  tg_version: '0.53.2'
+
+jobs:
+  setup:
+    runs-on:
+      - self-hosted
+      - azimuth
+    outputs:
+      matrix: ${{ steps.changed_files.outputs.matrix }}
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Set APT Proxy Configuration
+        run: |
+          echo "Acquire::http::proxy \"${{ env.http_proxy }}\";" | sudo tee -a /etc/apt/apt.conf
+          echo "Acquire::https::proxy \"${{ env.https_proxy }}\";" | sudo tee -a /etc/apt/apt.conf
+          echo "Acquire::ftp::proxy \"${{ env.http_proxy }}\";" | sudo tee -a /etc/apt/apt.conf
+          echo "Acquire::http::proxy::no_proxy \"${{ env.no_proxy }}\";" | sudo tee -a /etc/apt/apt.conf
+
+      - name: Install wget
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install wget -y
+
+      - name: Install GH Cli
+        id: github-cli
+        run: |
+          mkdir -p .bin
+          wget -q https://repo.azaibench.com/deploy/github/gh -O .bin/gh
+          chmod +x .bin/gh
+          echo "$GITHUB_WORKSPACE/.bin" >> $GITHUB_PATH
+
+      - name: changed_files
+        id: changed_files
+        run: |
+          PR_NUMBER=`echo $GITHUB_REF | cut -d/ -f3`
+          list_of_folders=`gh pr view https://github.com/AZU-IGNITE/azimuth-deployment/pull/$PR_NUMBER --json files --jq '[.files[].path | select(. != "init/iam/terragrunt.hcl" ) | select(.|index("terragrunt.hcl")) | sub("/terragrunt.hcl";"")]'`
+          echo "matrix=$list_of_folders" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  plan-apply:
+    runs-on:
+      - self-hosted
+      - azimuth
+    needs: setup
+    if: ${{ needs.setup.outputs.matrix != '[]' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        value: ${{ fromJSON(needs.setup.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Set APT Proxy Configuration
+        run: |
+          echo "Acquire::http::proxy \"${{ env.http_proxy }}\";" | sudo tee -a /etc/apt/apt.conf
+          echo "Acquire::https::proxy \"${{ env.https_proxy }}\";" | sudo tee -a /etc/apt/apt.conf
+          echo "Acquire::ftp::proxy \"${{ env.http_proxy }}\";" | sudo tee -a /etc/apt/apt.conf
+          echo "Acquire::http::proxy::no_proxy \"${{ env.no_proxy }}\";" | sudo tee -a /etc/apt/apt.conf
+
+      - name: Install wget
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install wget -y
+
+      - name: Install GH Cli
+        id: github-cli
+        run: |
+          mkdir -p .bin
+          wget -q https://repo.azaibench.com/deploy/github/gh -O .bin/gh
+          chmod +x .bin/gh
+          echo "$GITHUB_WORKSPACE/.bin" >> $GITHUB_PATH
+
+      - uses: azure/setup-kubectl@v4.0.0
+        with:
+          version: 'v1.25.0'
+        id: install
+
+      - name: Configure kubeconfig
+        id: kubeconfig-setup
+        run: |
+          echo $KUBECONFIG | base64 -d > ${{ matrix.value }}/azimuth_purple_cluster
+        env:
+          KUBECONFIG: ${{ secrets.PURPLE_CLUSTER }}
+
+      - name: Terragrunt Plan
+        id: terragrunt_plan
+        uses: gruntwork-io/terragrunt-action@v2
+        with:
+          tf_version: ${{ env.tf_version }}
+          tg_version: ${{ env.tg_version }}
+          tg_dir: "${{ matrix.value }}"
+          tg_command: 'plan'
+          tg_comment: '1'
+        env:
+          INPUT_PRE_EXEC_1: |
+            git config --global url."https://api:${{ secrets.GH_TOKEN }}@github.com".insteadOf "ssh://git@github.com"
+          INPUT_PRE_EXEC_2: |
+            git config --global --list
+          INPUT_PRE_EXEC_3: |
+            mkdir -p .bin
+            wget -q https://repo.azaibench.com/deploy/argocd/argocd-linux-amd64 -O /github/workspace/.bin/argocd
+            chmod +x /github/workspace/.bin/argocd
+            export PATH=/github/workspace/.bin:$PATH
+          GITHUB_TOKEN: ${{ github.token }}
+          TF_VAR_argocd_username: ${{ secrets.ARGOCD_USERNAME }}
+          TF_VAR_argocd_password: ${{ secrets.ARGOCD_PASSWORD }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          TF_VAR_kube_config_path: "./azimuth_purple_cluster"
+
+      - name: Check if PR is approved
+        run: |
+          PR_NUMBER=`echo $GITHUB_REF | cut -d/ -f3`
+          is_approved=false
+          count=0
+          while ! $is_approved
+          do
+            if [[ `gh pr view https://github.com/AZU-IGNITE/azimuth-deployment/pull/$PR_NUMBER --json reviewDecision --jq '.reviewDecision'` == "APPROVED" ]]
+            then
+              is_approved=true
+              echo "PR is approved. Continuing....."
+            else
+              is_approved=false
+              count=$count+1
+              sleep 5
+              echo "PR is not approved yet. Waiting......"
+              if [[ "$count" -gt 20 ]]
+              then
+                echo "Please start this Job again once PR is approved yet. Exiting with error......"
+                exit 1
+              fi
+            fi
+          done
+
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Terragrunt apply
+        id: terragrunt_apply
+        uses: gruntwork-io/terragrunt-action@v2
+        with:
+          tf_version: ${{ env.tf_version }}
+          tg_version: ${{ env.tg_version }}
+          tg_dir: "${{ matrix.value }}"
+          tg_command: 'apply'
+          tg_comment: '1'
+        env:
+          INPUT_PRE_EXEC_1: |
+            git config --global url."https://api:${{ secrets.GH_TOKEN }}@github.com".insteadOf "ssh://git@github.com"
+          INPUT_PRE_EXEC_2: |
+            git config --global --list
+          INPUT_PRE_EXEC_3: |
+            mkdir -p .bin
+            wget -q https://repo.azaibench.com/deploy/argocd/argocd-linux-amd64 -O /github/workspace/.bin/argocd
+            chmod +x /github/workspace/.bin/argocd
+            export PATH=/github/workspace/.bin:$PATH
+          GITHUB_TOKEN: ${{ github.token }}
+          TF_VAR_argocd_username: ${{ secrets.ARGOCD_USERNAME }}
+          TF_VAR_argocd_password: ${{ secrets.ARGOCD_PASSWORD }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          TF_VAR_kube_config_path: "./azimuth_purple_cluster"
+  merge:
+    runs-on:
+      - self-hosted
+      - azimuth
+    needs: plan-apply
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Set APT Proxy Configuration
+        run: |
+          echo "Acquire::http::proxy \"${{ env.http_proxy }}\";" | sudo tee -a /etc/apt/apt.conf
+          echo "Acquire::https::proxy \"${{ env.https_proxy }}\";" | sudo tee -a /etc/apt/apt.conf
+          echo "Acquire::ftp::proxy \"${{ env.http_proxy }}\";" | sudo tee -a /etc/apt/apt.conf
+          echo "Acquire::http::proxy::no_proxy \"${{ env.no_proxy }}\";" | sudo tee -a /etc/apt/apt.conf
+
+      - name: Install wget
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install wget -y
+
+      - name: Install GH Cli
+        id: github-cli
+        run: |
+          mkdir -p .bin
+          wget -q https://repo.azaibench.com/deploy/github/gh -O .bin/gh
+          chmod +x .bin/gh
+          echo "$GITHUB_WORKSPACE/.bin" >> $GITHUB_PATH
+
+      - name: merge-pr
+        id: merge-pr
+        run: |
+          PR_NUMBER=`echo $GITHUB_REF | cut -d/ -f3`
+          gh pr merge https://github.com/AZU-IGNITE/azimuth-deployment/pull/$PR_NUMBER -s
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

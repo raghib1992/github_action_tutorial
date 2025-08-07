@@ -1,0 +1,72 @@
+name: NodeJS cache Dependencies
+on: 
+  # push:
+  #   branches:
+  #     - master
+  #     - main
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get-code
+        uses: actions/checkout@v4
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: node-dependencies-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies
+        run: npm ci
+        working-directory: './03_nodejs_project'
+      - name: Lint Code
+        run: npm run lint
+        working-directory: './03_nodejs_project'
+      - name: Run test
+        run: npm run test
+        working-directory: './03_nodejs_project'
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: './03_nodejs_project'
+    outputs:
+      script-name: ${{ steps.publish.outputs.file-name }}
+    steps:
+      - name: Get-code
+        uses: actions/checkout@v4
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: node-dependencies-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Build Project
+        run: npm run build
+      # save output value
+      - name: Publish JS file
+        id: publish
+        run: find dist/assets/*.js -type f -execdir echo 'file-name={}' >> $GITHUB_OUTPUT ';'
+      # Need to save artifacts
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4 # *https://github.com/actions/upload-artifact*
+        with:
+          name: dist-files # name of files to retrieve in other Job
+          path: | ## Path where artifact will saved
+            03_nodejs_project/dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: output filename
+        run: echo "${{ needs.build.outputs.script-name }}"
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-files
+      - name: Check downloaded files
+        run: ls -l
+      - name: Deploy
+        run: echo "deploying....."

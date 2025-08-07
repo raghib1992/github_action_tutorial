@@ -1,0 +1,128 @@
+name: Generate Yaml File
+
+on:
+  workflow_dispatch:
+    inputs:
+      clusterName:
+        type: choice
+        required: true
+        description: Select Cluster
+        default: 'dev' 
+        options: 
+        - bronze
+        - dev
+        - iron
+        - jade
+        - lead
+        - mirror
+        - onyx
+      namespace:
+        description: Namespace in which milvus cluster required
+        type: string
+        required: true
+      milusImageVersion:
+        description: Milvus Image version
+        type: string
+        required: true
+        default: 'v2.4.9'
+      attuImageVersion:
+        description: Attu Image version
+        type: string
+        required: true
+        default: 'v2.4.7'
+      bucketName:
+        description: Namespace in which milvus cluster required
+        type: string
+        required: true
+        default: 'az-eu-azimuth-kfp-dev'
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.changed_files.outputs.matrix }}
+    steps:
+      - name: Get Code
+        uses: actions/checkout@v4
+
+      - name: Install Python Packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install jinja2
+      
+      - name: Create directory if not exist
+        id: create-cluster-directory
+        run: |
+          mkdir -p yaml/${{ inputs.clusterName }}
+      
+      - name: Change File
+        id: ch_file
+        run: |
+          git fetch
+          if git branch -r | grep -q "origin/${{ env.BRANCH_NAME }}"; then
+            git checkout ${{ env.BRANCH_NAME }}
+            list_of_files=`gh pr view --json files --jq '[.files[].path | select(startswith("yaml/"))]'`
+            echo "matrix=$list_of_folders" >> $GITHUB_OUTPUT
+            echo $list_of_files
+          else
+            list_of_files=[]
+            echo "matrix=$list_of_folders" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH_NAME: "yaml-${{ inputs.clusterName }}-${{ inputs.namespace }}"
+  create_file:
+    runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ needs.setup.outputs.matrix != '[]' }}
+    steps:
+      - name: echo
+        run: echo "success"    
+  #     - name: Generate Milvus Manifest
+  #       run: python generate_yaml_manifest.py
+  #       env:
+  #         NAMESPACE: ${{ inputs.namespace }}
+  #         CLUSTER: ${{ inputs.clusterName }}
+  #         MILVUS_IMAGE_VERSION: ${{ inputs.milusImageVersion }}
+  #         BUCKET_NAME: ${{ inputs.bucketName }}
+  #         ATTU_IMAGE_VERSION: ${{ inputs.attuImageVersion }}
+  #       working-directory: ./yaml
+
+  #     - name: Git push changes to branch
+  #       id: branch
+  #       run: |
+  #         git config --global user.email "raghib.npti@gmail.com"
+  #         git config --global user.name "raghib1992"
+  #         git remote set-url --push origin https://raghib1992:$GITHUB_TOKEN@github.com/raghib1992/github_action
+  #         git checkout -b ${{ env.BRANCH_NAME }}
+  #         git add yaml/${{ inputs.clusterName }}/${{ inputs.namespace }}.yaml
+  #         git commit -m "Adding milvus manifest file: milvus/${{ inputs.clusterName }}/${{ inputs.namespace }}.yaml"
+  #         git push --set-upstream origin ${{ env.BRANCH_NAME }}
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #         BRANCH_NAME: "yaml-${{ inputs.clusterName }}-${{ inputs.namespace }}"
+
+  #     - name: Raise-PR
+  #       id: raise-pr
+  #       run: |
+  #         gh pr create --title "Adding milvus manifest file: milvus/${{ inputs.clusterName }}/${{ inputs.namespace }}.yaml" --body "Adding milvus manifest file: milvus/${{ inputs.clusterName }}/${{ inputs.namespace }}.yaml" --base master --repo https://github.com/raghib1992/github_action
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+  # MergerPR:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Get Code
+  #       uses: actions/checkout@v4
+  #     - name: changed_files
+  #       id: changed_files
+  #       run: |
+  #         git pull
+  #         git checkout ${{ env.BRANCH_NAME }}
+  #         PR_NUMBER=`echo $GITHUB_REF | cut -d/ -f3`
+  #         echo $PR_NUMBER
+  #         list_of_folders=`gh pr view https://github.com/raghib1992/github_action/pull/$PR_NUMBER --json files --jq '[.files[].path]'`
+  #         echo $list_of_folders
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+  #         BRANCH_NAME: "yaml-${{ inputs.clusterName }}-${{ inputs.namespace }}"
+          
